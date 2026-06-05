@@ -97,62 +97,45 @@ function updateChart(diff) {
 
 // --- 2D CANVAS BOND VISUALIZER ---
 let canvas, ctx;
-let particles = [];
-const PARTICLE_COUNT = 150;
+const PARTICLE_COUNT = 800; // Dense static particles
 
 function initCanvasVisualizer() {
     canvas = document.getElementById('bondCanvas');
     ctx = canvas.getContext('2d');
     
-    // Initialize flow particles with random offsets
-    particles = [];
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-        particles.push({
-            t: Math.random(), // progress along the path
-            offsetY: (Math.random() - 0.5) * 45, // dispersion width
-            speed: 0.008 + Math.random() * 0.012,
-            size: Math.random() * 2 + 1.2,
-            angleSeed: Math.random() * Math.PI * 2
-        });
-    }
-
     resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-    
-    // Start animation loop
-    requestAnimationFrame(renderLoop);
+    window.addEventListener('resize', () => {
+        resizeCanvas();
+        drawStaticScene();
+    });
 }
 
 function resizeCanvas() {
     const container = canvas.parentElement;
     const rect = container.getBoundingClientRect();
-    
-    // Adjust canvas resolution for retina displays
     const dpr = window.devicePixelRatio || 1;
+    
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
     
-    // Scale drawings
     ctx.scale(dpr, dpr);
     canvas.style.width = `${rect.width}px`;
     canvas.style.height = `${rect.height}px`;
 }
 
-let time = 0;
-function renderLoop() {
+// Draw the static distribution of electrons (no animation loop)
+function drawStaticScene() {
     if (!canvas || !ctx) return;
     
-    time += 0.03;
     const width = canvas.width / (window.devicePixelRatio || 1);
     const height = canvas.height / (window.devicePixelRatio || 1);
     
-    // Clear canvas
     ctx.clearRect(0, 0, width, height);
 
     // Positions of Atom A and Atom B
     const xCenter = width / 2;
     const yCenter = height / 2;
-    const spacing = 160; // distance between elements
+    const spacing = 160; 
     const xA = xCenter - spacing;
     const xB = xCenter + spacing;
 
@@ -160,14 +143,15 @@ function renderLoop() {
     const enB = selectedAtomB.en;
     const diff = Math.abs(enA - enB);
     const sumEn = enA + enB;
+    
+    // Relative distribution weights
     const wA = enA / sumEn;
     const wB = enB / sumEn;
 
-    // Radii of atomic cores (adjusted for screen)
+    // Radii of atomic cores
     const baseRadiusA = Math.sqrt(selectedAtomA.radius) * 35;
     const baseRadiusB = Math.sqrt(selectedAtomB.radius) * 35;
 
-    // Set glow theme color depending on electronegativity difference
     let glowColor = 'rgba(0, 242, 254, 0.4)';  // Cyan
     let particleColor = '#00f2fe';
     if (diff >= 0.4 && diff < 1.7) {
@@ -178,21 +162,21 @@ function renderLoop() {
         particleColor = '#ff007f';
     }
 
-    // --- 1. RENDER ELECTRON CLOUD DENSITY (GLOW) ---
+    // --- 1. RENDER ELECTRON CLOUD DENSITY (BACKGROUND GLOW) ---
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
 
-    // Shared bonding bridge (fades out in ionic bonds)
+    // Shared bonding bridge (gradually vanishes as polar diff increases, completely gone in ionic)
     if (diff < 1.7) {
         const bridgeGlow = ctx.createLinearGradient(xA, yCenter, xB, yCenter);
-        const bridgeOpacity = ((1.7 - diff) / 1.7) * 0.7;
+        const bridgeOpacity = ((1.7 - diff) / 1.7) * 0.75;
         
         bridgeGlow.addColorStop(0, `rgba(0, 242, 254, ${wA * bridgeOpacity})`);
         bridgeGlow.addColorStop(0.5, glowColor.replace('0.4', (bridgeOpacity * 0.8).toString()));
         bridgeGlow.addColorStop(1, `rgba(255, 0, 127, ${wB * bridgeOpacity})`);
 
         ctx.strokeStyle = bridgeGlow;
-        ctx.lineWidth = 60 * (1 - diff / 2.3);
+        ctx.lineWidth = 65 * (1 - diff / 2.0);
         ctx.lineCap = 'round';
         ctx.shadowBlur = 30;
         ctx.shadowColor = particleColor;
@@ -202,78 +186,83 @@ function renderLoop() {
         ctx.stroke();
     }
 
-    // Dense cloud cores
-    // Atom A density envelope
-    const radGlowA = ctx.createRadialGradient(xA, yCenter, 0, xA, yCenter, baseRadiusA * (1.6 - diff * 0.4));
-    const opacityA = enA > enB ? 0.75 : 0.75 - diff * 0.25;
+    // Cloud around Atom A (shrinks if B is stronger)
+    const radGlowA = ctx.createRadialGradient(xA, yCenter, 0, xA, yCenter, baseRadiusA * (1.7 - diff * 0.5));
+    const opacityA = enA >= enB ? 0.8 : 0.8 - diff * 0.35;
     radGlowA.addColorStop(0, `rgba(0, 242, 254, ${opacityA})`);
     radGlowA.addColorStop(0.5, `rgba(0, 242, 254, ${opacityA * 0.3})`);
     radGlowA.addColorStop(1, 'rgba(0, 242, 254, 0)');
     ctx.fillStyle = radGlowA;
     ctx.beginPath();
-    ctx.arc(xA, yCenter, baseRadiusA * (1.6 - diff * 0.4), 0, Math.PI * 2);
+    ctx.arc(xA, yCenter, baseRadiusA * (1.7 - diff * 0.5), 0, Math.PI * 2);
     ctx.fill();
 
-    // Atom B density envelope
-    const radGlowB = ctx.createRadialGradient(xB, yCenter, 0, xB, yCenter, baseRadiusB * (1.6 + diff * 0.3));
-    const opacityB = enB > enA ? 0.75 : 0.75 - diff * 0.25;
+    // Cloud around Atom B (grows if B is stronger)
+    const radGlowB = ctx.createRadialGradient(xB, yCenter, 0, xB, yCenter, baseRadiusB * (1.7 + diff * 0.4));
+    const opacityB = enB >= enA ? 0.8 : 0.8 - diff * 0.35;
     radGlowB.addColorStop(0, `rgba(255, 0, 127, ${opacityB})`);
     radGlowB.addColorStop(0.5, `rgba(255, 0, 127, ${opacityB * 0.3})`);
     radGlowB.addColorStop(1, 'rgba(255, 0, 127, 0)');
     ctx.fillStyle = radGlowB;
     ctx.beginPath();
-    ctx.arc(xB, yCenter, baseRadiusB * (1.6 + diff * 0.3), 0, Math.PI * 2);
+    ctx.arc(xB, yCenter, baseRadiusB * (1.7 + diff * 0.4), 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();
 
-    // --- 2. RENDER ELECTRON PARTICLES (FLOW ANIMATION) ---
+    // --- 2. RENDER STATIC ELECTRON DOTS (DENSITY DISTRIBUTION) ---
     ctx.save();
-    ctx.shadowBlur = 8;
+    ctx.shadowBlur = 4;
     ctx.shadowColor = particleColor;
     ctx.fillStyle = particleColor;
-    
-    // Determine flow direction based on electronegativity difference
-    const isFlowToA = enA > enB;
 
-    particles.forEach(p => {
-        // Animate progress
-        p.t += p.speed;
-        if (p.t > 1) {
-            p.t = 0;
-            p.offsetY = (Math.random() - 0.5) * 45;
-        }
+    // Use a deterministic seed generator for static dot layout
+    let seed = 45;
+    function random() {
+        const x = Math.sin(seed++) * 10000;
+        return x - Math.floor(x);
+    }
 
-        // In ionic bond (diff >= 1.7), particles stop sharing and orbit only the stronger atom
-        if (diff >= 1.7) {
-            const orbitAtomX = isFlowToA ? xA : xB;
-            const orbitRadius = (isFlowToA ? baseRadiusA : baseRadiusB) * 1.1 + Math.sin(p.angleSeed) * 12;
-            const angle = time * 0.8 + p.angleSeed;
-            
-            const px = orbitAtomX + Math.cos(angle) * orbitRadius;
-            const py = yCenter + Math.sin(angle) * orbitRadius * 0.8;
+    const bridgeRatio = diff >= 1.7 ? 0 : 0.35 * (1 - diff / 1.7); // proportion of shared electrons
 
-            ctx.beginPath();
-            ctx.arc(px, py, p.size, 0, Math.PI * 2);
-            ctx.fill();
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+        let px = 0, py = 0;
+        const type = random();
+
+        if (type < bridgeRatio) {
+            // Shared bridge zone (between A and B)
+            const t = random();
+            px = xA + (xB - xA) * t;
+            const dispersion = (random() - 0.5) * 45 * Math.sin(t * Math.PI);
+            py = yCenter + dispersion;
         } else {
-            // Covalent/polar sharing path
-            // Particles flow along a sinus bridge between A and B
-            const skewedT = isFlowToA ? (1 - p.t) : p.t; // flow direction
-            const px = xA + (xB - xA) * skewedT;
+            // Clustered zone (around Core A or Core B depending on electronegativity weight)
+            const isA = random() < wA;
+            const center = isA ? xA : xB;
+            const coreRadius = isA ? baseRadiusA : baseRadiusB;
             
-            // Bridge thickness is thinner at high electronegativity differences
-            const disp = p.offsetY * Math.sin(skewedT * Math.PI) * (1 - diff / 2.0);
-            const py = yCenter + disp + Math.sin(time * 3 + p.angleSeed) * 2;
+            // Adjust outer cloud limits
+            let maxRadius = coreRadius * 1.8;
+            if (diff > 0.05) {
+                if (isA && enA < enB) maxRadius = coreRadius * Math.max(1.8 - diff * 0.7, 0.5);
+                if (!isA && enB < enA) maxRadius = coreRadius * Math.max(1.8 - diff * 0.7, 0.5);
+            }
 
-            ctx.beginPath();
-            ctx.arc(px, py, p.size, 0, Math.PI * 2);
-            ctx.fill();
+            const angle = random() * Math.PI * 2;
+            const dist = Math.pow(random(), 1.3) * maxRadius; // concentrates near center
+
+            px = center + Math.cos(angle) * dist;
+            py = yCenter + Math.sin(angle) * dist * 0.9;
         }
-    });
+
+        const size = random() * 1.8 + 0.8;
+        ctx.beginPath();
+        ctx.arc(px, py, size, 0, Math.PI * 2);
+        ctx.fill();
+    }
     ctx.restore();
 
-    // --- 3. RENDER ATOMIC CORES (3D SPHERICAL LOOK) ---
+    // --- 3. RENDER ATOMIC CORES ---
     // Core A
     ctx.save();
     const coreGradA = ctx.createRadialGradient(xA - 8, yCenter - 8, 2, xA, yCenter, baseRadiusA);
@@ -288,7 +277,6 @@ function renderLoop() {
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    // Label A
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 15px Orbitron';
     ctx.textAlign = 'center';
@@ -310,7 +298,6 @@ function renderLoop() {
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    // Label B
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 15px Orbitron';
     ctx.textAlign = 'center';
@@ -318,7 +305,7 @@ function renderLoop() {
     ctx.fillText(selectedAtomB.symbol, xB, yCenter);
     ctx.restore();
 
-    // --- 4. RENDER DIPOLE MOMENT VECTOR (ARROW) ---
+    // --- 4. RENDER DIPOLE MOMENT ARROW ---
     if (diff > 0.05) {
         ctx.save();
         const arrowY = yCenter - 75;
@@ -329,18 +316,15 @@ function renderLoop() {
         ctx.shadowBlur = 10;
         ctx.shadowColor = '#f59e0b';
 
-        // Set direction: from positive (lower EN) to negative (higher EN)
-        const isDirLeft = enA > enB; // points to A
+        const isDirLeft = enA > enB; 
         const arrowStartX = xCenter + (isDirLeft ? (arrowLength / 2) : -(arrowLength / 2));
         const arrowEndX = xCenter + (isDirLeft ? -(arrowLength / 2) : (arrowLength / 2));
 
-        // Draw line
         ctx.beginPath();
         ctx.moveTo(arrowStartX, arrowY);
         ctx.lineTo(arrowEndX, arrowY);
         ctx.stroke();
 
-        // Draw arrow head
         ctx.fillStyle = '#f59e0b';
         ctx.beginPath();
         if (isDirLeft) {
@@ -354,13 +338,11 @@ function renderLoop() {
         }
         ctx.fill();
 
-        // Draw cross-tail at starting position
         ctx.beginPath();
         ctx.moveTo(arrowStartX, arrowY - 6);
         ctx.lineTo(arrowStartX, arrowY + 6);
         ctx.stroke();
 
-        // Arrow Label
         ctx.font = '500 10px Orbitron';
         ctx.fillStyle = '#f59e0b';
         ctx.fillText('DIPOLE MOMENT', xCenter, arrowY - 14);
@@ -376,7 +358,6 @@ function renderLoop() {
         const labelY = yCenter - baseRadiusA - 20;
 
         if (enA > enB) {
-            // A is negative, B is positive
             ctx.fillStyle = '#00f2fe';
             ctx.shadowColor = '#00f2fe';
             ctx.shadowBlur = 8;
@@ -387,7 +368,6 @@ function renderLoop() {
             ctx.shadowBlur = 8;
             ctx.fillText('δ+', xB, labelY);
         } else {
-            // A is positive, B is negative
             ctx.fillStyle = '#00f2fe';
             ctx.shadowColor = '#00f2fe';
             ctx.shadowBlur = 8;
@@ -400,8 +380,6 @@ function renderLoop() {
         }
         ctx.restore();
     }
-
-    requestAnimationFrame(renderLoop);
 }
 
 // --- APP LOGIC ---
@@ -498,6 +476,7 @@ function updateBondSimulation() {
     }
 
     updateChart(diff);
+    drawStaticScene();
 }
 
 window.addEventListener('DOMContentLoaded', () => {
