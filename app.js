@@ -15,7 +15,18 @@ const ELEMENTS = [
     { number: 15, symbol: 'P',  name: '인 (Phosphorus)',      en: 2.19, radius: 1.06, color: '#a78bfa' },
     { number: 16, symbol: 'S',  name: '황 (Sulfur)',          en: 2.58, radius: 1.02, color: '#facc15' },
     { number: 17, symbol: 'Cl', name: '염소 (Chlorine)',      en: 3.16, radius: 0.99, color: '#4ade80' },
-    { number: 19, symbol: 'K',  name: '칼륨 (Potassium)',     en: 0.82, radius: 2.27, color: '#fbcfe8' }
+    { number: 19, symbol: 'K',  name: '칼륨 (Potassium)',     en: 0.82, radius: 2.27, color: '#fbcfe8' },
+    { number: 20, symbol: 'Ca', name: '칼슘 (Calcium)',       en: 1.00, radius: 1.97, color: '#a3e635' },
+    { number: 26, symbol: 'Fe', name: '철 (Iron)',            en: 1.83, radius: 1.25, color: '#f87171' },
+    { number: 28, symbol: 'Ni', name: '니켈 (Nickel)',        en: 1.91, radius: 1.21, color: '#f472b6' },
+    { number: 29, symbol: 'Cu', name: '구리 (Copper)',        en: 1.90, radius: 1.28, color: '#fb923c' },
+    { number: 30, symbol: 'Zn', name: '아연 (Zinc)',          en: 1.65, radius: 1.33, color: '#a78bfa' },
+    { number: 35, symbol: 'Br', name: '브로민 (Bromine)',      en: 2.96, radius: 1.14, color: '#e11d48' },
+    { number: 47, symbol: 'Ag', name: '은 (Silver)',          en: 1.93, radius: 1.44, color: '#e2e8f0' },
+    { number: 53, symbol: 'I',  name: '아이오딘 (Iodine)',     en: 2.66, radius: 1.33, color: '#db2777' },
+    { number: 55, symbol: 'Cs', name: '세슘 (Cesium)',        en: 0.79, radius: 2.65, color: '#67e8f9' },
+    { number: 79, symbol: 'Au', name: '금 (Gold)',            en: 2.54, radius: 1.44, color: '#fbbf24' },
+    { number: 82, symbol: 'Pb', name: '납 (Lead)',            en: 2.33, radius: 1.75, color: '#94a3b8' }
 ];
 
 // --- APP STATE ---
