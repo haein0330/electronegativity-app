@@ -9,9 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&family=Orbitron:wght@400;600;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <!-- Chart.js and Three.js CDNs -->
+    <!-- Chart.js CDN (Three.js removed for 100% stable 2D canvas) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
     <div class="cyber-overlay"></div>
@@ -22,7 +21,7 @@
             <span class="subtitle">// CHEMICAL BONDING SANDBOX</span>
         </div>
         <div class="sandbox-badge">
-            <span>EXPERIMENTAL MODE</span>
+            <span>2D LAB MODE</span>
         </div>
     </header>
 
@@ -85,25 +84,20 @@
             </div>
         </section>
 
-        <!-- Right Column: 3D Visualization & Graph Analysis -->
+        <!-- Right Column: 2D Visualization & Graph Analysis -->
         <section class="panel right-panel">
-            <!-- 3D Visualization Canvas -->
+            <!-- 2D Visualization Canvas -->
             <div class="cyber-card glass visualization-card">
                 <div class="card-header">
                     <span class="card-icon">🌀</span>
-                    <h2>3D ELECTRON CLOUD DENSITY</h2>
+                    <h2>2D ELECTRON DENSITY MODEL</h2>
                     <div class="legend">
                         <span class="legend-item"><span class="legend-color a-color"></span>Atom A</span>
                         <span class="legend-item"><span class="legend-color b-color"></span>Atom B</span>
                     </div>
                 </div>
                 <div class="card-content visualizer-container" id="canvasContainer">
-                    <!-- Three.js Canvas injected here -->
-                    <div class="charge-overlay">
-                        <div class="charge-sign" id="chargeA"></div>
-                        <div class="charge-sign" id="chargeB"></div>
-                    </div>
-                    <div class="three-controls-hint">마우스 드래그로 회전 가능</div>
+                    <canvas id="bondCanvas"></canvas>
                 </div>
             </div>
 
