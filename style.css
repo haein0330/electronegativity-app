@@ -135,6 +135,7 @@ body {
     overflow: hidden;
     backdrop-filter: blur(12px);
     transition: border-color 0.3s, box-shadow 0.3s;
+    flex-shrink: 0; /* Prevent flex parent from squishing cards */
 }
 
 .cyber-card::before {
