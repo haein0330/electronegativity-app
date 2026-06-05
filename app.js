@@ -100,7 +100,8 @@ let scene, camera, renderer;
 let atomMeshA, atomMeshB;
 let electronParticles;
 let dipoleArrow;
-const PARTICLE_COUNT = 2500; // Increased count for volumetric density mist
+const PARTICLE_COUNT = 3000; // Increased count for volumetric density mist
+let particleSeeds = []; // Stores uncorrelated random values for true spherical/bridge distribution
 
 function initThree() {
     const container = document.getElementById('canvasContainer');
@@ -162,17 +163,29 @@ function initThree() {
     dipoleArrow = new THREE.ArrowHelper(arrowDir, arrowOrigin, 0.1, 0xffa500, 0.4, 0.22);
     scene.add(dipoleArrow);
 
+    // Generate static uncorrelated random seeds for particles
+    particleSeeds = [];
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+        particleSeeds.push({
+            radialScale: Math.pow(Math.random(), 1.4), // concentrates near core
+            theta: Math.random() * Math.PI * 2,
+            phi: Math.acos((Math.random() * 2) - 1),
+            bridgeT: Math.random(),
+            bridgeAngle: Math.random() * Math.PI * 2,
+            bridgeRadius: Math.random(),
+            typeSeed: Math.random(), // used to partition particle categories
+            vibrationOffset: Math.random() * Math.PI * 2
+        });
+    }
+
     // Dynamic Volumetric Density Particles
     const pGeometry = new THREE.BufferGeometry();
     const positions = new Float32Array(PARTICLE_COUNT * 3);
-    const scales = new Float32Array(PARTICLE_COUNT);
 
     for (let i = 0; i < PARTICLE_COUNT; i++) {
-        // Temp random values inside box
-        positions[i*3] = (Math.random() - 0.5) * 8;
-        positions[i*3+1] = (Math.random() - 0.5) * 4;
-        positions[i*3+2] = (Math.random() - 0.5) * 4;
-        scales[i] = Math.random() * 0.3 + 0.1;
+        positions[i*3] = 0;
+        positions[i*3+1] = 0;
+        positions[i*3+2] = 0;
     }
 
     pGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -183,8 +196,8 @@ function initThree() {
     canvas.height = 32;
     const ctx = canvas.getContext('2d');
     const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
-    grad.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-    grad.addColorStop(0.2, 'rgba(255, 255, 255, 0.4)');
+    grad.addColorStop(0, 'rgba(255, 255, 255, 0.85)');
+    grad.addColorStop(0.2, 'rgba(255, 255, 255, 0.45)');
     grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 32, 32);
@@ -192,9 +205,9 @@ function initThree() {
 
     const pMaterial = new THREE.PointsMaterial({
         color: 0x00f2fe,
-        size: 0.12,
+        size: 0.15,
         transparent: true,
-        opacity: 0.7,
+        opacity: 0.85,
         blending: THREE.AdditiveBlending,
         map: pTexture,
         depthWrite: false
@@ -231,18 +244,17 @@ function onWindowResize() {
 let time = 0;
 function animate() {
     requestAnimationFrame(animate);
-    time += 0.02;
+    time += 0.035;
 
-    atomMeshA.rotation.y += 0.006;
-    atomMeshB.rotation.y += 0.006;
+    atomMeshA.rotation.y += 0.004;
+    atomMeshB.rotation.y += 0.004;
 
-    // Density mapping
+    // Density mapping weights
     const enA = selectedAtomA.en;
     const enB = selectedAtomB.en;
     const diff = Math.abs(enA - enB);
     const sumEn = enA + enB;
     const wA = enA / sumEn;
-    const wB = enB / sumEn;
 
     const posA = atomMeshA.position;
     const posB = atomMeshB.position;
@@ -251,64 +263,57 @@ function animate() {
     
     // Generate/Shift particles in a probability density distribution
     for (let i = 0; i < PARTICLE_COUNT; i++) {
-        // We use index-based pseudo-random offsets that evolve with time
-        // to form a continuous, flowing electron density fog
-        const seed1 = Math.sin(i * 0.98 + time * 0.4) * 0.5 + 0.5;
-        const seed2 = Math.cos(i * 1.57 - time * 0.5) * 0.5 + 0.5;
-        const seed3 = Math.sin(i * 3.14 + time * 0.8) * 0.5 + 0.5;
+        const seed = particleSeeds[i];
+        
+        // Quantum vibration simulation (slight oscillation over time)
+        const vib = Math.sin(time * 2 + seed.vibrationOffset) * 0.05;
 
         // Choose which atom this particle clusters around based on electronegativity weight
-        const isClusterA = seed1 < wA;
+        const isClusterA = seed.typeSeed < wA;
 
         // Base sphere center
         const center = isClusterA ? posA : posB;
         const scaleVal = isClusterA ? atomMeshA.scale.x : atomMeshB.scale.x;
 
-        // Volumetric electron cloud density shape
-        // In ionic bond, the cloud is concentrated and tight around B, leaving A bare.
-        // In polar covalent, we have a bridge.
-        let cloudRadius = scaleVal * 1.6;
+        // Base cloud radius proportional to atomic radius
+        let cloudRadius = scaleVal * 1.7;
         
-        // Adjust cloud radius & density based on polarity
+        // Dynamic deformation based on polar/ionic character
         if (diff > 0.05) {
             if (isClusterA) {
-                // If it is the positive (less electronegative) atom, its cloud shrinks/strips away
+                // If it belongs to positive atom, pull its cloud density inwards/deplete it
                 if (enA < enB) {
-                    cloudRadius = scaleVal * (1.5 - Math.min(diff * 0.45, 1.2));
+                    cloudRadius = scaleVal * Math.max(1.6 - diff * 0.65, 0.45);
                 }
             } else {
-                // If B is the positive one, it strips B
+                // If B is positive, deplete B's cloud
                 if (enB < enA) {
-                    cloudRadius = scaleVal * (1.5 - Math.min(diff * 0.45, 1.2));
+                    cloudRadius = scaleVal * Math.max(1.6 - diff * 0.65, 0.45);
                 }
             }
         }
 
-        // Spherical distribution
-        const theta = seed2 * Math.PI * 2;
-        const phi = Math.acos((seed3 * 2) - 1);
-        
-        // Standard density decay (more concentrated near core)
-        const radialScale = Math.pow(Math.random(), 1.5); 
-        const dist = radialScale * cloudRadius;
+        // Spherical distribution mapping using pre-generated random seeds
+        const theta = seed.theta + time * 0.08; // slow drift rotation
+        const phi = seed.phi;
+        const dist = seed.radialScale * cloudRadius + vib;
 
-        // Calculate basic coordinate offset
+        // Calculate 3D coordinates around target core
         let targetX = center.x + dist * Math.sin(phi) * Math.cos(theta);
         let targetY = center.y + dist * Math.sin(phi) * Math.sin(theta);
         let targetZ = center.z + dist * Math.cos(phi);
 
-        // Add a "bonding bridge" of electrons between them if not fully ionic
+        // Add a "bonding bridge" between atoms for covalent/polar bonds
         if (diff < 1.7) {
-            // Draw a fraction of particles into the bonding region between them
-            const bridgeWeight = (1.7 - diff) / 1.7 * 0.32; // maximum 32% of particles form the bridge
-            if (Math.random() < bridgeWeight) {
-                // Interpolate position between A and B
-                const t = Math.random();
+            const bridgeWeight = (1.7 - diff) / 1.7 * 0.35; // Maximum 35% particles in the covalent sharing zone
+            if (seed.typeSeed < bridgeWeight) {
+                const t = seed.bridgeT;
                 targetX = posA.x + (posB.x - posA.x) * t;
-                // Add minor dispersion perpendicular to the bond axis
-                const dispersion = (Math.random() - 0.5) * 1.1 * Math.sin(t * Math.PI);
-                targetY = dispersion * Math.cos(time + i);
-                targetZ = dispersion * Math.sin(time + i);
+                
+                // Disperse around the sharing axis
+                const dispersion = (0.7 + seed.bridgeRadius * 0.6) * Math.sin(t * Math.PI) * (1.0 - (diff / 2.0));
+                targetY = dispersion * Math.cos(seed.bridgeAngle + time * 0.25) + vib;
+                targetZ = dispersion * Math.sin(seed.bridgeAngle + time * 0.25) + vib;
             }
         }
 
@@ -321,14 +326,14 @@ function animate() {
 
     // Cloud visual color shifts based on bonding state
     if (diff < 0.4) {
-        // Pure covalent: uniform glowing Cyan
-        electronParticles.material.color.setHex(0x00f2fe);
+        electronParticles.material.color.setHex(0x00f2fe); // Cyan
+        electronParticles.material.size = 0.16;
     } else if (diff < 1.7) {
-        // Polar covalent: Amber/Gold gradient indicator
-        electronParticles.material.color.setHex(0xf59e0b);
+        electronParticles.material.color.setHex(0xf59e0b); // Orange
+        electronParticles.material.size = 0.14;
     } else {
-        // Ionic: Neon Pink
-        electronParticles.material.color.setHex(0xff007f);
+        electronParticles.material.color.setHex(0xff007f); // Pink
+        electronParticles.material.size = 0.12;
     }
 
     renderer.render(scene, camera);
