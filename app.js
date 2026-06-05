@@ -18,49 +18,20 @@ const ELEMENTS = [
     { number: 19, symbol: 'K',  name: '칼륨 (Potassium)',     en: 0.82, radius: 2.27, color: '#fbcfe8' }
 ];
 
-// --- MISSION CONFIGURATION ---
-const STAGES = [
-    {
-        stage: 1,
-        title: "Stage 1: 무극성 공유 결합 형성",
-        desc: "전기음성도 차이(ΔEN)가 0.4 미만이 되어 두 원자가 전자를 균등하게 공유하는 '무극성 공유 결합'을 형성하세요. (예: C와 H 등)",
-        check: (diff) => diff < 0.4,
-        explanation: (a, b, diff) => `성공! ${a.name}(EN ${a.en})와 ${b.name}(EN ${b.en})의 전기음성도 차이는 ${diff.toFixed(2)}입니다. 차이가 0.4 미만이므로 전자가 균등하게 공유되는 무극성 공유 결합(Nonpolar Covalent)을 형성합니다.`
-    },
-    {
-        stage: 2,
-        title: "Stage 2: 극성 공유 결합 형성",
-        desc: "전기음성도 차이(ΔEN)가 0.4 이상 1.7 미만이 되어 전자가 한쪽으로 치우쳐 극성을 띠는 '극성 공유 결합'을 형성하세요. (예: H와 O 등)",
-        check: (diff) => diff >= 0.4 && diff < 1.7,
-        explanation: (a, b, diff) => `성공! ${a.name}(EN ${a.en})와 ${b.name}(EN ${b.en})의 전기음성도 차이는 ${diff.toFixed(2)}입니다. 차이가 0.4~1.7 사이이므로 더 전기음성도가 큰 쪽으로 공유 전자쌍이 끌려가는 극성 공유 결합(Polar Covalent)을 형성합니다.`
-    },
-    {
-        stage: 3,
-        title: "Stage 3: 이온 결합 형성",
-        desc: "전기음성도 차이(ΔEN)가 1.7 이상이 되어 전자가 완전히 한쪽으로 이동하여 정전기적 인력으로 결합하는 '이온 결합'을 형성하세요. (예: Na와 Cl 등)",
-        check: (diff) => diff >= 1.7,
-        explanation: (a, b, diff) => `성공! ${a.name}(EN ${a.en})와 ${b.name}(EN ${b.en})의 전기음성도 차이는 ${diff.toFixed(2)}입니다. 차이가 1.7 이상으로 매우 크기 때문에, 전자가 완전히 전이되어 음이온과 양이온을 형성하는 이온 결합(Ionic)에 도달합니다.`
-    }
-];
-
 // --- APP STATE ---
 let activeSlot = 'A'; // 'A' or 'B'
 let selectedAtomA = ELEMENTS.find(e => e.symbol === 'C'); // Default Carbon
 let selectedAtomB = ELEMENTS.find(e => e.symbol === 'H'); // Default Hydrogen
-let currentStage = 1;
 
 // --- CHART SETUP (Chart.js) ---
 let chartInstance = null;
 
-// Pauling Equation: Percent Ionic Character = (1 - e^(-(ΔEN/2)^2)) * 100
 function getIonicPercentage(diff) {
     return (1 - Math.exp(-Math.pow(diff / 2, 2))) * 100;
 }
 
 function initChart() {
     const ctx = document.getElementById('paulingChart').getContext('2d');
-    
-    // Generate background curve points
     const curveData = [];
     for (let x = 0; x <= 3.3; x += 0.05) {
         curveData.push({ x: x, y: getIonicPercentage(x) });
@@ -74,7 +45,7 @@ function initChart() {
                     label: '이온 결합성 (%)',
                     data: curveData,
                     showLine: true,
-                    borderColor: 'rgba(0, 242, 254, 0.4)',
+                    borderColor: 'rgba(0, 242, 254, 0.3)',
                     borderWidth: 2,
                     pointRadius: 0,
                     fill: false,
@@ -82,7 +53,7 @@ function initChart() {
                 },
                 {
                     label: '현재 결합 상태',
-                    data: [], // Updated dynamically
+                    data: [], 
                     pointBackgroundColor: '#ff007f',
                     pointBorderColor: '#fff',
                     pointBorderWidth: 2,
@@ -95,9 +66,7 @@ function initChart() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
+            plugins: { legend: { display: false } },
             scales: {
                 x: {
                     type: 'linear',
@@ -126,12 +95,12 @@ function updateChart(diff) {
     chartInstance.update();
 }
 
-// --- THREE.JS SETUP ---
+// --- THREE.JS SETUP (Volumetric Electron Cloud) ---
 let scene, camera, renderer;
 let atomMeshA, atomMeshB;
 let electronParticles;
 let dipoleArrow;
-const PARTICLE_COUNT = 80;
+const PARTICLE_COUNT = 2500; // Increased count for volumetric density mist
 
 function initThree() {
     const container = document.getElementById('canvasContainer');
@@ -139,10 +108,10 @@ function initThree() {
     const height = container.clientHeight;
 
     scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x08090f, 0.05);
+    scene.fog = new THREE.FogExp2(0x08090f, 0.04);
 
     camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-    camera.position.z = 12;
+    camera.position.z = 11;
 
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
@@ -150,199 +119,221 @@ function initThree() {
     container.appendChild(renderer.domElement);
 
     // Lights
-    const ambientLight = new THREE.AmbientLight(0x333333);
+    const ambientLight = new THREE.AmbientLight(0x222222);
     scene.add(ambientLight);
 
-    const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    const mainLight = new THREE.DirectionalLight(0xffffff, 1.0);
     mainLight.position.set(5, 5, 5);
     scene.add(mainLight);
 
-    const pointLight = new THREE.PointLight(0x00f2fe, 2, 15);
-    pointLight.position.set(-2, 0, 2);
-    scene.add(pointLight);
+    const pointLightA = new THREE.PointLight(0x00f2fe, 3, 12);
+    pointLightA.position.set(-2.5, 0, 2);
+    scene.add(pointLightA);
 
-    const pointLight2 = new THREE.PointLight(0xff007f, 2, 15);
-    pointLight2.position.set(2, 0, 2);
-    scene.add(pointLight2);
+    const pointLightB = new THREE.PointLight(0xff007f, 3, 12);
+    pointLightB.position.set(2.5, 0, 2);
+    scene.add(pointLightB);
 
-    // Atom Meshes (Representing cores)
+    // Core spheres representation
     const geometry = new THREE.SphereGeometry(1, 32, 32);
-    
     const matA = new THREE.MeshPhongMaterial({
         color: 0x00f2fe,
-        emissive: 0x002244,
-        shininess: 80,
-        flatShading: false
+        emissive: 0x001122,
+        shininess: 90
     });
     const matB = new THREE.MeshPhongMaterial({
         color: 0xff007f,
-        emissive: 0x440022,
-        shininess: 80,
-        flatShading: false
+        emissive: 0x220011,
+        shininess: 90
     });
 
     atomMeshA = new THREE.Mesh(geometry, matA);
     atomMeshB = new THREE.Mesh(geometry, matB);
 
-    atomMeshA.position.x = -3.2;
-    atomMeshB.position.x = 3.2;
+    atomMeshA.position.x = -2.5;
+    atomMeshB.position.x = 2.5;
 
     scene.add(atomMeshA);
     scene.add(atomMeshB);
 
-    // Dipole Moment Vector Arrow
+    // Dipole Moment Arrow
     const arrowDir = new THREE.Vector3(1, 0, 0);
-    const arrowOrigin = new THREE.Vector3(0, 0, 0);
-    dipoleArrow = new THREE.ArrowHelper(arrowDir, arrowOrigin, 0.1, 0xffaa00, 0.4, 0.25);
+    const arrowOrigin = new THREE.Vector3(0, 1.8, 0); // raised above atoms
+    dipoleArrow = new THREE.ArrowHelper(arrowDir, arrowOrigin, 0.1, 0xffa500, 0.4, 0.22);
     scene.add(dipoleArrow);
 
-    // Electron clouds representation (Particle System)
-    const particleGeometry = new THREE.BufferGeometry();
+    // Dynamic Volumetric Density Particles
+    const pGeometry = new THREE.BufferGeometry();
     const positions = new Float32Array(PARTICLE_COUNT * 3);
-    
-    // Distribute particles in a standard bond pathway
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-        positions[i*3] = (Math.random() - 0.5) * 6;
-        positions[i*3+1] = (Math.random() - 0.5) * 2;
-        positions[i*3+2] = (Math.random() - 0.5) * 2;
-    }
-    
-    particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const scales = new Float32Array(PARTICLE_COUNT);
 
-    // Custom Canvas Texture for nice circular glowing particles
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+        // Temp random values inside box
+        positions[i*3] = (Math.random() - 0.5) * 8;
+        positions[i*3+1] = (Math.random() - 0.5) * 4;
+        positions[i*3+2] = (Math.random() - 0.5) * 4;
+        scales[i] = Math.random() * 0.3 + 0.1;
+    }
+
+    pGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    
+    // Canvas texture for smooth volumetric circular particles
     const canvas = document.createElement('canvas');
-    canvas.width = 16;
-    canvas.height = 16;
+    canvas.width = 32;
+    canvas.height = 32;
     const ctx = canvas.getContext('2d');
-    const grad = ctx.createRadialGradient(8, 8, 0, 8, 8, 8);
-    grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+    grad.addColorStop(0.2, 'rgba(255, 255, 255, 0.4)');
     grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
     ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 16, 16);
+    ctx.fillRect(0, 0, 32, 32);
     const pTexture = new THREE.CanvasTexture(canvas);
 
-    const particleMaterial = new THREE.PointsMaterial({
+    const pMaterial = new THREE.PointsMaterial({
         color: 0x00f2fe,
-        size: 0.35,
+        size: 0.12,
         transparent: true,
+        opacity: 0.7,
         blending: THREE.AdditiveBlending,
         map: pTexture,
         depthWrite: false
     });
 
-    electronParticles = new THREE.Points(particleGeometry, particleMaterial);
+    electronParticles = new THREE.Points(pGeometry, pMaterial);
     scene.add(electronParticles);
 
-    // Basic orbital controls emulation via mouse dragging
+    // Controls
     let isDragging = false;
-    let previousMousePosition = { x: 0, y: 0 };
-    
-    container.addEventListener('mousedown', (e) => { isDragging = true; });
+    let prevMouse = { x: 0, y: 0 };
+    container.addEventListener('mousedown', () => isDragging = true);
     container.addEventListener('mousemove', (e) => {
-        const deltaMove = {
-            x: e.offsetX - previousMousePosition.x,
-            y: e.offsetY - previousMousePosition.y
-        };
-
         if (isDragging) {
-            scene.rotation.y += deltaMove.x * 0.005;
-            scene.rotation.x += deltaMove.y * 0.005;
+            scene.rotation.y += (e.offsetX - prevMouse.x) * 0.006;
+            scene.rotation.x += (e.offsetY - prevMouse.y) * 0.006;
         }
-
-        previousMousePosition = {
-            x: e.offsetX,
-            y: e.offsetY
-        };
+        prevMouse = { x: e.offsetX, y: e.offsetY };
     });
-    window.addEventListener('mouseup', () => { isDragging = false; });
+    window.addEventListener('mouseup', () => isDragging = false);
 
-    // Handle resizing
     window.addEventListener('resize', onWindowResize);
-
     animate();
 }
 
 function onWindowResize() {
     const container = document.getElementById('canvasContainer');
     if (!container || !renderer) return;
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-    camera.aspect = width / height;
+    camera.aspect = container.clientWidth / container.clientHeight;
     camera.updateProjectionMatrix();
-    renderer.setSize(width, height);
+    renderer.setSize(container.clientWidth, container.clientHeight);
 }
 
-// Particle animation loop where particles flow/skew depending on Electronegativity Difference
 let time = 0;
 function animate() {
     requestAnimationFrame(animate);
-    
-    time += 0.05;
+    time += 0.02;
 
-    // Pulse atoms slightly
-    atomMeshA.rotation.y += 0.01;
-    atomMeshB.rotation.y += 0.01;
+    atomMeshA.rotation.y += 0.006;
+    atomMeshB.rotation.y += 0.006;
 
-    // Electron sharing animation
+    // Density mapping
     const enA = selectedAtomA.en;
     const enB = selectedAtomB.en;
     const diff = Math.abs(enA - enB);
-    const flowDirection = enA > enB ? -1 : 1; // Flow to the stronger one
-    
-    // Position of atoms
+    const sumEn = enA + enB;
+    const wA = enA / sumEn;
+    const wB = enB / sumEn;
+
     const posA = atomMeshA.position;
     const posB = atomMeshB.position;
 
-    // Animate and warp electrons based on electronegativity difference
     const positions = electronParticles.geometry.attributes.position.array;
+    
+    // Generate/Shift particles in a probability density distribution
     for (let i = 0; i < PARTICLE_COUNT; i++) {
-        // We use a parametric curve (interpolating between Atom A and Atom B)
-        // With electronegativity difference skewing the probability density (concentration)
-        const tVal = ((i + time) % PARTICLE_COUNT) / PARTICLE_COUNT; // value 0 to 1
+        // We use index-based pseudo-random offsets that evolve with time
+        // to form a continuous, flowing electron density fog
+        const seed1 = Math.sin(i * 0.98 + time * 0.4) * 0.5 + 0.5;
+        const seed2 = Math.cos(i * 1.57 - time * 0.5) * 0.5 + 0.5;
+        const seed3 = Math.sin(i * 3.14 + time * 0.8) * 0.5 + 0.5;
+
+        // Choose which atom this particle clusters around based on electronegativity weight
+        const isClusterA = seed1 < wA;
+
+        // Base sphere center
+        const center = isClusterA ? posA : posB;
+        const scaleVal = isClusterA ? atomMeshA.scale.x : atomMeshB.scale.x;
+
+        // Volumetric electron cloud density shape
+        // In ionic bond, the cloud is concentrated and tight around B, leaving A bare.
+        // In polar covalent, we have a bridge.
+        let cloudRadius = scaleVal * 1.6;
         
-        // Skewing formula
-        let skewedT = tVal;
+        // Adjust cloud radius & density based on polarity
         if (diff > 0.05) {
-            // Skew electron concentration towards the atom with higher electronegativity
-            const skewFactor = Math.min(diff * 0.35, 0.85); // Max skew cap
-            if (flowDirection === -1) {
-                // Skew towards A (tVal closer to 0)
-                skewedT = Math.pow(tVal, 1 + skewFactor);
+            if (isClusterA) {
+                // If it is the positive (less electronegative) atom, its cloud shrinks/strips away
+                if (enA < enB) {
+                    cloudRadius = scaleVal * (1.5 - Math.min(diff * 0.45, 1.2));
+                }
             } else {
-                // Skew towards B (tVal closer to 1)
-                skewedT = 1 - Math.pow(1 - tVal, 1 + skewFactor);
+                // If B is the positive one, it strips B
+                if (enB < enA) {
+                    cloudRadius = scaleVal * (1.5 - Math.min(diff * 0.45, 1.2));
+                }
             }
         }
 
-        // Interpolate position along the X-axis between A and B
-        const targetX = posA.x + (posB.x - posA.x) * skewedT;
+        // Spherical distribution
+        const theta = seed2 * Math.PI * 2;
+        const phi = Math.acos((seed3 * 2) - 1);
         
-        // Orbit/cylinder shape surrounding the bond
-        const angle = (i * 0.17) + time * 0.3;
-        const radius = 0.6 + Math.sin(skewedT * Math.PI) * 0.8 * (1 - (diff / 4)); // ionic cloud collapses slightly
+        // Standard density decay (more concentrated near core)
+        const radialScale = Math.pow(Math.random(), 1.5); 
+        const dist = radialScale * cloudRadius;
+
+        // Calculate basic coordinate offset
+        let targetX = center.x + dist * Math.sin(phi) * Math.cos(theta);
+        let targetY = center.y + dist * Math.sin(phi) * Math.sin(theta);
+        let targetZ = center.z + dist * Math.cos(phi);
+
+        // Add a "bonding bridge" of electrons between them if not fully ionic
+        if (diff < 1.7) {
+            // Draw a fraction of particles into the bonding region between them
+            const bridgeWeight = (1.7 - diff) / 1.7 * 0.32; // maximum 32% of particles form the bridge
+            if (Math.random() < bridgeWeight) {
+                // Interpolate position between A and B
+                const t = Math.random();
+                targetX = posA.x + (posB.x - posA.x) * t;
+                // Add minor dispersion perpendicular to the bond axis
+                const dispersion = (Math.random() - 0.5) * 1.1 * Math.sin(t * Math.PI);
+                targetY = dispersion * Math.cos(time + i);
+                targetZ = dispersion * Math.sin(time + i);
+            }
+        }
 
         positions[i*3] = targetX;
-        positions[i*3+1] = Math.sin(angle) * radius * (1.0 + 0.1 * Math.cos(time + i));
-        positions[i*3+2] = Math.cos(angle) * radius * (1.0 + 0.1 * Math.sin(time + i));
+        positions[i*3+1] = targetY;
+        positions[i*3+2] = targetZ;
     }
+    
     electronParticles.geometry.attributes.position.needsUpdate = true;
 
-    // Dynamic color shifting for electron particles
+    // Cloud visual color shifts based on bonding state
     if (diff < 0.4) {
-        // Pure covalent - Greenish/Blue
+        // Pure covalent: uniform glowing Cyan
         electronParticles.material.color.setHex(0x00f2fe);
     } else if (diff < 1.7) {
-        // Polar - Gold/Yellow-Green
-        electronParticles.material.color.setHex(0xeab308);
+        // Polar covalent: Amber/Gold gradient indicator
+        electronParticles.material.color.setHex(0xf59e0b);
     } else {
-        // Ionic - Neon Pink
+        // Ionic: Neon Pink
         electronParticles.material.color.setHex(0xff007f);
     }
 
     renderer.render(scene, camera);
 }
 
-// Update 3D visualization when atoms change
 function update3DScene() {
     if (!atomMeshA || !atomMeshB) return;
 
@@ -350,59 +341,53 @@ function update3DScene() {
     const enB = selectedAtomB.en;
     const diff = Math.abs(enA - enB);
 
-    // Radii representing core sizes (normalized slightly for visuals)
-    const baseRadiusA = Math.sqrt(selectedAtomA.radius) * 0.8;
-    const baseRadiusB = Math.sqrt(selectedAtomB.radius) * 0.8;
+    // Resize atom cores according to atomic radius
+    const scaleA = Math.sqrt(selectedAtomA.radius) * 0.85;
+    const scaleB = Math.sqrt(selectedAtomB.radius) * 0.85;
 
-    atomMeshA.scale.setScalar(baseRadiusA);
-    atomMeshB.scale.setScalar(baseRadiusB);
+    atomMeshA.scale.setScalar(scaleA);
+    atomMeshB.scale.setScalar(scaleB);
 
     atomMeshA.material.color.set(selectedAtomA.color);
     atomMeshB.material.color.set(selectedAtomB.color);
 
-    // Delta charge signs and HTML overlays
+    // Position delta charge indicators
     const chargeAEl = document.getElementById('chargeA');
     const chargeBEl = document.getElementById('chargeB');
 
-    // Project 3D coordinates to 2D screen positions for Delta charge indicators
     const tempV_A = new THREE.Vector3().copy(atomMeshA.position);
     const tempV_B = new THREE.Vector3().copy(atomMeshB.position);
-    tempV_A.y += 1.4; // offset above the atom
+    tempV_A.y += 1.4;
     tempV_B.y += 1.4;
 
     tempV_A.project(camera);
     tempV_B.project(camera);
 
     const canvasContainer = document.getElementById('canvasContainer');
-    const widthHalf = canvasContainer.clientWidth / 2;
-    const heightHalf = canvasContainer.clientHeight / 2;
+    const wHalf = canvasContainer.clientWidth / 2;
+    const hHalf = canvasContainer.clientHeight / 2;
 
-    const screenX_A = (tempV_A.x * widthHalf) + widthHalf;
-    const screenY_A = -(tempV_A.y * heightHalf) + heightHalf;
-    const screenX_B = (tempV_B.x * widthHalf) + widthHalf;
-    const screenY_B = -(tempV_B.y * heightHalf) + heightHalf;
+    chargeAEl.style.left = `${(tempV_A.x * wHalf) + wHalf}px`;
+    chargeAEl.style.top = `${-(tempV_A.y * hHalf) + hHalf}px`;
+    chargeBEl.style.left = `${(tempV_B.x * wHalf) + wHalf}px`;
+    chargeBEl.style.top = `${-(tempV_B.y * hHalf) + hHalf}px`;
 
-    chargeAEl.style.left = `${screenX_A}px`;
-    chargeAEl.style.top = `${screenY_A}px`;
-    chargeBEl.style.left = `${screenX_B}px`;
-    chargeBEl.style.top = `${screenY_B}px`;
-
-    // Handle dipole arrows & delta values
+    // Position & orientation of Dipole moment vector
     if (diff > 0.05) {
         dipoleArrow.visible = true;
-        const arrowLength = Math.min(diff * 1.5, 4.5);
-        dipoleArrow.setLength(arrowLength, 0.4, 0.25);
+        const arrowLength = Math.min(diff * 1.5, 3.8);
+        dipoleArrow.setLength(arrowLength, 0.4, 0.22);
         
         if (enA > enB) {
-            // Points from B (less EN) to A (more EN)
             dipoleArrow.setDirection(new THREE.Vector3(-1, 0, 0));
+            dipoleArrow.position.set(arrowLength / 2, 1.8, 0);
             chargeAEl.textContent = 'δ-';
             chargeBEl.textContent = 'δ+';
             chargeAEl.style.opacity = 1;
             chargeBEl.style.opacity = 1;
         } else {
-            // Points from A to B
             dipoleArrow.setDirection(new THREE.Vector3(1, 0, 0));
+            dipoleArrow.position.set(-arrowLength / 2, 1.8, 0);
             chargeAEl.textContent = 'δ+';
             chargeBEl.textContent = 'δ-';
             chargeAEl.style.opacity = 1;
@@ -415,7 +400,7 @@ function update3DScene() {
     }
 }
 
-// --- DOM & PTABLE CONTROL ---
+// --- APP LOGIC ---
 function renderPeriodicTable() {
     const tableContainer = document.getElementById('periodicTable');
     tableContainer.innerHTML = '';
@@ -441,10 +426,8 @@ function renderPeriodicTable() {
 function selectElement(el) {
     if (activeSlot === 'A') {
         selectedAtomA = el;
-        document.getElementById('selectedAName').textContent = `${el.symbol} (${el.en.toFixed(2)})`;
     } else {
         selectedAtomB = el;
-        document.getElementById('selectedBName').textContent = `${el.symbol} (${el.en.toFixed(2)})`;
     }
 
     updateSelectionStyles();
@@ -452,13 +435,11 @@ function selectElement(el) {
 }
 
 function updateSelectionStyles() {
-    // Sync active slot tabs
     document.querySelectorAll('.slot-toggle').forEach(btn => {
         const slot = btn.dataset.slot;
         btn.classList.toggle('active', slot === activeSlot);
     });
 
-    // Sync periodic table buttons
     document.querySelectorAll('.pt-element').forEach(btn => {
         const symbol = btn.dataset.symbol;
         const isA = selectedAtomA.symbol === symbol;
@@ -474,76 +455,53 @@ function updateSelectionStyles() {
         }
     });
 
-    // Update labels
     document.getElementById('selectedAName').textContent = `${selectedAtomA.symbol} (${selectedAtomA.en.toFixed(2)})`;
     document.getElementById('selectedBName').textContent = `${selectedAtomB.symbol} (${selectedAtomB.en.toFixed(2)})`;
 }
 
-// Core app updating
 function updateBondSimulation() {
-    const diff = Math.abs(selectedAtomA.en - selectedAtomB.en);
+    const enA = selectedAtomA.en;
+    const enB = selectedAtomB.en;
+    const diff = Math.abs(enA - enB);
+    const ionicPct = getIonicPercentage(diff);
     
-    // Update chart position
-    updateChart(diff);
+    // Update labels
+    document.getElementById('bondElements').textContent = `${selectedAtomA.name} - ${selectedAtomB.name}`;
+    document.getElementById('enDifference').textContent = diff.toFixed(2);
+    document.getElementById('ionicPercent').textContent = `${ionicPct.toFixed(1)}%`;
+
+    // Category check
+    const typeBadge = document.getElementById('bondType');
+    const descBox = document.getElementById('bondDescription');
+
+    typeBadge.className = 'summary-val badge'; // reset class
     
-    // Update Three.js properties
-    update3DScene();
-
-    // Check Stage Objective
-    const currentMission = STAGES[currentStage - 1];
-    const statusMsg = document.getElementById('statusMessage');
-    const indicator = document.getElementById('missionStatusIndicator');
-    const nextBtn = document.getElementById('nextStageBtn');
-
-    if (currentMission.check(diff)) {
-        statusMsg.textContent = "목표 달성! 다음 단계를 진행할 수 있습니다.";
-        indicator.className = "mission-status-indicator success";
-        nextBtn.style.display = "block";
+    if (diff < 0.4) {
+        typeBadge.textContent = '무극성 공유 결합';
+        typeBadge.classList.add('covalent');
+        descBox.innerHTML = `두 원소의 전기음성도 차이가 매우 작아(${diff.toFixed(2)}), 3D 뷰어 상의 <strong>전자구름이 두 원자핵 사이에 고르게 분포</strong>해 있습니다. 전자를 양쪽에서 대칭에 가깝게 대등하게 공유하는 무극성 결합입니다.`;
+    } else if (diff < 1.7) {
+        typeBadge.textContent = '극성 공유 결합';
+        typeBadge.classList.add('polar');
+        const strongerSymbol = enA > enB ? selectedAtomA.symbol : selectedAtomB.symbol;
+        descBox.innerHTML = `전기음성도 차이(${diff.toFixed(2)})로 인해 공유 전자구름이 더 강한 원소인 <strong>${strongerSymbol} 쪽으로 쏠려 있음</strong>을 볼 수 있습니다. 전자 분포 불균형으로 인해 분자 내에 부분적인 양전하(δ+)와 음전하(δ-)가 생성되며, 쌍극자 모멘트 벡터(화살표)가 발생합니다.`;
     } else {
-        statusMsg.textContent = `현재 ΔEN = ${diff.toFixed(2)}. 목표에 도달하지 못했습니다.`;
-        indicator.className = "mission-status-indicator ready";
-        nextBtn.style.display = "none";
+        typeBadge.textContent = '이온 결합';
+        typeBadge.classList.add('ionic');
+        const strongerSymbol = enA > enB ? selectedAtomA.symbol : selectedAtomB.symbol;
+        const weakerSymbol = enA > enB ? selectedAtomB.symbol : selectedAtomA.symbol;
+        descBox.innerHTML = `두 원소의 전기음성도 차이가 극도로 커서(${diff.toFixed(2)}), 전자가 <strong>${weakerSymbol}에서 ${strongerSymbol}로 거의 완전히 전이</strong>되었습니다. 3D 뷰어에서 전자구름이 한쪽 구체에만 몰려 있으며, 두 원자는 각각 완전히 양이온과 음이온이 되어 강한 정전기적 인력으로 묶이게 됩니다.`;
     }
+
+    updateChart(diff);
+    update3DScene();
 }
 
-// --- GAME LOGIC ---
-function loadStage(stageNum) {
-    currentStage = stageNum;
-    const stageConf = STAGES[stageNum - 1];
-    
-    document.getElementById('missionTitle').textContent = stageConf.title;
-    document.getElementById('missionDesc').textContent = stageConf.desc;
-
-    // Update header progress meter
-    document.getElementById('progressBar').style.width = `${((stageNum - 1) / 3) * 100}%`;
-    document.getElementById('progressText').textContent = `${stageNum - 1} / 3`;
-
-    document.getElementById('nextStageBtn').style.display = "none";
-    document.getElementById('missionStatusIndicator').className = "mission-status-indicator ready";
-    document.getElementById('statusMessage').textContent = "주기율표에서 결합할 원소들을 선택하세요.";
-
-    updateBondSimulation();
-}
-
-function handleStageSuccess() {
-    const stageConf = STAGES[currentStage - 1];
-    const diff = Math.abs(selectedAtomA.en - selectedAtomB.en);
-
-    // Set stage completion modal descriptions
-    document.getElementById('modalStageTitle').textContent = `${stageConf.title} 완료!`;
-    document.getElementById('modalExplanation').textContent = stageConf.explanation(selectedAtomA, selectedAtomB, diff);
-    
-    const overlay = document.getElementById('successModal');
-    overlay.classList.add('active');
-}
-
-// Init everything
 window.addEventListener('DOMContentLoaded', () => {
     initChart();
     initThree();
     renderPeriodicTable();
 
-    // Event Listeners for switching Slot Selection
     document.getElementById('slotABtn').addEventListener('click', () => {
         activeSlot = 'A';
         updateSelectionStyles();
@@ -554,39 +512,10 @@ window.addEventListener('DOMContentLoaded', () => {
         updateSelectionStyles();
     });
 
-    // Button to progress stage inside the side control card
-    document.getElementById('nextStageBtn').addEventListener('click', handleStageSuccess);
-
-    // Modal progress button click
-    document.getElementById('modalCloseBtn').addEventListener('click', () => {
-        document.getElementById('successModal').classList.remove('active');
-        
-        if (currentStage < 3) {
-            loadStage(currentStage + 1);
-        } else {
-            // Victory Modal
-            document.getElementById('progressBar').style.width = "100%";
-            document.getElementById('progressText').textContent = "3 / 3";
-            document.getElementById('victoryModal').classList.add('active');
-        }
-    });
-
-    // Reset Game button
-    document.getElementById('resetGameBtn').addEventListener('click', () => {
-        document.getElementById('victoryModal').classList.remove('active');
-        // Reset defaults
-        selectedAtomA = ELEMENTS.find(e => e.symbol === 'C');
-        selectedAtomB = ELEMENTS.find(e => e.symbol === 'H');
-        activeSlot = 'A';
-        updateSelectionStyles();
-        loadStage(1);
-    });
-
-    // Set starting stage
-    loadStage(1);
+    updateBondSimulation();
     
-    // Kickstart coordinate mapping after everything loads
+    // Quick update delay to ensure render layout handles coordinate system
     setTimeout(() => {
         updateBondSimulation();
-    }, 100);
+    }, 150);
 });

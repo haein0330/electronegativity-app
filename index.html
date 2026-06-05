@@ -19,37 +19,44 @@
     <header class="cyber-header">
         <div class="header-logo">
             <span class="glitch" data-text="ELECTRO-LAB">ELECTRO-LAB</span>
-            <span class="subtitle">// CHEMICAL BONDING SIMULATOR</span>
+            <span class="subtitle">// CHEMICAL BONDING SANDBOX</span>
         </div>
-        <div class="mission-status-container">
-            <span class="status-label">STAGE PROGRESS:</span>
-            <div class="progress-bar-bg">
-                <div class="progress-bar-fill" id="progressBar"></div>
-            </div>
-            <span class="status-value" id="progressText">0 / 3</span>
+        <div class="sandbox-badge">
+            <span>EXPERIMENTAL MODE</span>
         </div>
     </header>
 
     <main class="dashboard-grid">
-        <!-- Left Column: Mission Control & Element Picker -->
+        <!-- Left Column: Information Display & Element Picker -->
         <section class="panel left-panel">
-            <!-- Mission Panel -->
-            <div class="cyber-card glass mission-card" id="missionCard">
+            <!-- Bond Information Panel -->
+            <div class="cyber-card glass info-card" id="infoCard">
                 <div class="card-header">
-                    <span class="card-icon">⚡</span>
-                    <h2>MISSION CONTROL</h2>
+                    <span class="card-icon">📊</span>
+                    <h2>BOND ANALYSIS</h2>
                 </div>
                 <div class="card-content">
-                    <div class="mission-target">
-                        <span class="target-label">CURRENT OBJECTIVE</span>
-                        <h3 id="missionTitle">Stage 1: 무극성 공유 결합 형성</h3>
-                        <p id="missionDesc">전기음성도 차이(ΔEN)가 0.4 미만이 되는 두 원소를 주기율표에서 선택하여 결합을 만드세요.</p>
+                    <div class="bond-summary">
+                        <div class="summary-row">
+                            <span class="summary-label">결합 원소:</span>
+                            <span class="summary-val" id="bondElements">C - H</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="summary-label">전기음성도 차이 (ΔEN):</span>
+                            <span class="summary-val highlight" id="enDifference">0.35</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="summary-label">이온 결합성 백분율:</span>
+                            <span class="summary-val" id="ionicPercent">3.0%</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="summary-label">예상 결합 유형:</span>
+                            <span class="summary-val badge" id="bondType">무극성 공유 결합</span>
+                        </div>
                     </div>
-                    <div class="mission-status-indicator" id="missionStatusIndicator">
-                        <span class="indicator-dot"></span>
-                        <span class="indicator-text" id="statusMessage">대기 중... 원소를 선택해 주세요.</span>
+                    <div class="bond-description-box">
+                        <p id="bondDescription">두 원소의 전기음성도 차이가 매우 작아 공유 전자쌍이 중심에 거의 균등하게 분포합니다.</p>
                     </div>
-                    <button class="cyber-btn success-btn" id="nextStageBtn" style="display: none;">NEXT STAGE &gt;</button>
                 </div>
             </div>
 
@@ -84,7 +91,7 @@
             <div class="cyber-card glass visualization-card">
                 <div class="card-header">
                     <span class="card-icon">🌀</span>
-                    <h2>3D BOND VISUALIZATION</h2>
+                    <h2>3D ELECTRON CLOUD DENSITY</h2>
                     <div class="legend">
                         <span class="legend-item"><span class="legend-color a-color"></span>Atom A</span>
                         <span class="legend-item"><span class="legend-color b-color"></span>Atom B</span>
@@ -112,47 +119,6 @@
             </div>
         </section>
     </main>
-
-    <!-- Success Modal -->
-    <div class="modal-overlay" id="successModal">
-        <div class="cyber-modal glass">
-            <div class="modal-glow"></div>
-            <div class="modal-header">
-                <span class="modal-title">MISSION COMPLETED</span>
-            </div>
-            <div class="modal-body">
-                <div class="success-animation">
-                    <svg viewBox="0 0 52 52">
-                        <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
-                        <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
-                    </svg>
-                </div>
-                <h3 id="modalStageTitle">STAGE 1 통과!</h3>
-                <p id="modalExplanation">탄소(C, 2.5)와 수소(H, 2.1)의 전기음성도 차이는 0.4로, 전자가 거의 균등하게 공유되어 무극성 공유 결합을 형성합니다.</p>
-                <button class="cyber-btn modal-btn" id="modalCloseBtn">다음 미션 진행하기</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Final Victory Screen -->
-    <div class="modal-overlay" id="victoryModal">
-        <div class="cyber-modal glass victory-modal">
-            <div class="modal-header">
-                <span class="modal-title">CONGRATULATIONS</span>
-            </div>
-            <div class="modal-body">
-                <h1 class="victory-title">CHEMISTRY EXPERT</h1>
-                <p>전기음성도 차이에 따른 결합 유형(무극성 공유 결합, 극성 공유 결합, 이온 결합)의 모든 미션을 완벽히 마스터하셨습니다!</p>
-                <div class="summary-stats">
-                    <div class="stat-box">
-                        <div class="stat-val">3 / 3</div>
-                        <div class="stat-lbl">Stages Cleared</div>
-                    </div>
-                </div>
-                <button class="cyber-btn modal-btn reset-btn" id="resetGameBtn">시뮬레이션 처음부터 다시 하기</button>
-            </div>
-        </div>
-    </div>
 
     <script src="app.js"></script>
 </body>
